@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoiceGuard AI — Real-Time Voice Cloning Detection & Prevention</title>
+<meta name="description" content="AI-powered real-time detection and prevention of voice cloning impersonation attacks. We don't just detect fake voices — we make them fail.">
+<style>
+  :root{
+    --bg:#0a0e17; --bg2:#0f1524; --card:#141b2e; --card2:#1a2338;
+    --cyan:#00e5ff; --green:#00ff9d; --red:#ff4d6d; --amber:#ffc857;
+    --text:#e8eefc; --muted:#8b98b8; --border:#243050;
+    --grad:linear-gradient(135deg,#00e5ff,#7c4dff);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);overflow-x:hidden}
+  a{text-decoration:none;color:inherit}
+  section{padding:90px 7%}
+
+  /* ===== NAV ===== */
+  nav{position:fixed;top:0;width:100%;z-index:100;display:flex;justify-content:space-between;
+      align-items:center;padding:16px 7%;background:rgba(10,14,23,.85);backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border)}
+  .logo{font-size:1.35rem;font-weight:800;display:flex;align-items:center;gap:10px}
+  .logo .shield{width:34px;height:34px;background:var(--grad);border-radius:9px;
+      display:grid;place-items:center;font-size:1.1rem}
+  .logo b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  nav ul{display:flex;gap:28px;list-style:none}
+  nav ul a{color:var(--muted);font-size:.92rem;font-weight:600;transition:.3s}
+  nav ul a:hover{color:var(--cyan)}
+  .nav-cta{background:var(--grad);color:#fff!important;padding:9px 20px;border-radius:8px}
+  .burger{display:none;font-size:1.5rem;cursor:pointer;background:none;border:none;color:var(--text)}
+
+  /* ===== HERO ===== */
+  .hero{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr;gap:50px;
+       align-items:center;padding-top:140px;position:relative}
+  .hero::before{content:'';position:absolute;inset:0;
+      background:radial-gradient(700px circle at 80% 20%,rgba(124,77,255,.18),transparent),
+                 radial-gradient(600px circle at 15% 70%,rgba(0,229,255,.13),transparent);pointer-events:none}
+  .tag{display:inline-block;padding:7px 16px;border:1px solid var(--cyan);color:var(--cyan);
+      border-radius:100px;font-size:.78rem;font-weight:700;letter-spacing:1.5px;margin-bottom:22px}
+  .hero h1{font-size:clamp(2.1rem,4.2vw,3.4rem);line-height:1.15;font-weight:800;margin-bottom:20px}
+  .hero h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{color:var(--muted);font-size:1.05rem;line-height:1.7;max-width:520px;margin-bottom:32px}
+  .btns{display:flex;gap:16px;flex-wrap:wrap}
+  .btn{padding:14px 30px;border-radius:10px;font-weight:700;font-size:.95rem;transition:.3s;cursor:pointer;border:none}
+  .btn-primary{background:var(--grad);color:#fff;box-shadow:0 8px 30px rgba(0,229,255,.3)}
+  .btn-primary:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,229,255,.45)}
+  .btn-ghost{background:transparent;color:var(--cyan);border:1.5px solid var(--cyan)}
+  .btn-ghost:hover{background:rgba(0,229,255,.1)}
+
+  /* Waveform visual */
+  .wave-box{background:var(--card);border:1px solid var(--border);border-radius:18px;
+      padding:26px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .wave-box .lbl{display:flex;justify-content:space-between;font-size:.75rem;
+      color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+  canvas{width:100%;height:110px;display:block;border-radius:8px}
+  .verdict{margin-top:16px;padding:14px 18px;border-radius:10px;font-weight:700;
+      display:flex;justify-content:space-between;align-items:center;font-size:.95rem}
+  .verdict.safe{background:rgba(0,255,157,.1);border:1px solid rgba(0,255,157,.4);color:var(--green)}
+  .verdict.fake{background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.5);color:var(--red)}
+  .verdict button{background:none;border:1px solid currentColor;color:inherit;padding:6px 14px;
+      border-radius:7px;cursor:pointer;font-weight:700;font-size:.8rem}
+
+  /* ===== STATS ===== */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:50px 7%;
+      background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .stat{text-align:center}
+  .stat h3{font-size:2.4rem;font-weight:800;background:var(--grad);
+      -webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat p{color:var(--muted);font-size:.85rem;margin-top:6px}
+
+  /* ===== SECTION HEADINGS ===== */
+  .head{text-align:center;margin-bottom:60px}
+  .head .kicker{color:var(--cyan);font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+  .head h2{font-size:clamp(1.7rem,3vw,2.5rem);font-weight:800;margin-top:10px}
+  .head p{color:var(--muted);max-width:650px;margin:14px auto 0;line-height:1.7}
+
+  /* ===== PROBLEM ===== */
+  .prob-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px}
+  .prob-card{background:var(--card);border:1px solid var(--border);border-radius:16px;
+      padding:30px;transition:.3s}
+  .prob-card:hover{transform:translateY(-6px);border-color:var(--red)}
+  .prob-card .ico{font-size:2rem;margin-bottom:16px}
+  .prob-card h3{font-size:1.1rem;margin-bottom:10px}
+  .prob-card p{color:var(--muted);font-size:.9rem;line-height:1.6}
+
+  /* ===== SOLUTION / 3 PILLARS ===== */
+  .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .pillar{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--border);
+      border-radius:18px;padding:36px 28px;text-align:center;position:relative;overflow:hidden;transition:.3s}
+  .pillar:hover{transform:translateY(-6px)}
+  .pillar::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad)}
+  .pillar .badge{position:absolute;top:14px;right:14px;background:rgba(0,255,157,.15);color:var(--green);
+      font-size:.65rem;font-weight:800;padding:4px 10px;border-radius:100px;letter-spacing:1px}
+  .pillar .ico{font-size:2.6rem;margin-bottom:18px}
+  .pillar h3{font-size:1.25rem;margin-bottom:12px}
+  .pillar p{color:var(--muted);font-size:.9rem;line-height:1.65}
+
+  /* ===== ARCHITECTURE ===== */
+  .arch{background:var(--card);border:1px solid var(--border);border-radius:18px;
+      padding:40px;max-width:900px;margin:0 auto;font-family:'Consolas','Courier New',monospace;
+      font-size:.8rem;line-height:1.5;overflow-x:auto;white-space:pre;color:var(--cyan)}
+  .arch .hl{color:var(--green);font-weight:700}
+
+  /* ===== FEATURES TABLE ===== */
+  .feat-table{width:100%;border-collapse:collapse;background:var(--card);
+      border-radius:14px;overflow:hidden;border:1px solid var(--border)}
+  .feat-table th{background:var(--card2);padding:16px 20px;text-align:left;font-size:.85rem;
+      letter-spacing:1px;text-transform:uppercase;color:var(--cyan)}
+  .feat-table td{padding:16px 20px;border-top:1px solid var(--border);font-size:.92rem;vertical-align:top}
+  .feat-table td:first-child{font-weight:700;color:var(--text);width:38%}
+  .feat-table td:last-child{color:var(--muted)}
+
+  /* ===== DEMO ===== */
+  .demo-wrap{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;
+      background:var(--card);border:1px solid var(--border);border-radius:20px;padding:44px}
+  .gauge{position:relative;width:230px;height:230px;margin:0 auto}
+  .gauge svg{transform:rotate(-90deg)}
+  .gauge .val{position:absolute;inset:0;display:grid;place-items:center;flex-direction:column}
+  .gauge .val b{font-size:3rem;font-weight:800}
+  .gauge .val span{color:var(--muted);font-size:.8rem;letter-spacing:1px}
+  .demo-controls{display:flex;flex-direction:column;gap:14px}
+  .demo-controls h3{font-size:1.2rem}
+  .demo-controls p{color:var(--muted);font-size:.88rem;line-height:1.6}
+  .chip-row{display:flex;gap:10px;flex-wrap:wrap}
+  .chip{padding:10px 18px;border-radius:9px;border:1px solid var(--border);background:var(--bg2);
+      color:var(--muted);cursor:pointer;font-weight:700;font-size:.85rem;transition:.25s}
+  .chip:hover{border-color:var(--cyan);color:var(--cyan)}
+  .chip.active{background:var(--grad);color:#fff;border-color:transparent}
+  #demoStatus{padding:14px 18px;border-radius:10px;font-weight:700;font-size:.9rem;
+      background:var(--bg2);border:1px solid var(--border);color:var(--muted);min-height:50px}
+
+  /* ===== IMPACT ===== */
+  .impact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}
+  .impact-card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+      padding:26px;border-left:3px solid var(--cyan)}
+  .impact-card h4{font-size:1.05rem;margin-bottom:8px}
+  .impact-card p{color:var(--muted);font-size:.87rem;line-height:1.6}
+  .kpis{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:44px}
+  .kpi{background:rgba(0,255,157,.08);border:1px solid rgba(0,255,157,.35);color:var(--green);
+      padding:12px 22px;border-radius:100px;font-weight:700;font-size:.88rem}
+
+  /* ===== CTA / FOOTER ===== */
+  .cta{background:linear-gradient(135deg,rgba(0,229,255,.12),rgba(124,77,255,.12));
+      text-align:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .cta h2{font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;margin-bottom:16px}
+  .cta p{color:var(--muted);margin-bottom:30px}
+  footer{padding:40px 7%;display:flex;justify-content:space-between;align-items:center;
+      flex-wrap:wrap;gap:16px;color:var(--muted);font-size:.85rem}
+  footer .links{display:flex;gap:22px}
+  footer .links a:hover{color:var(--cyan)}
+
+  /* ===== REVEAL ANIMATION ===== */
+  .reveal{opacity:0;transform:translateY(30px);transition:.7s ease}
+  .reveal.show{opacity:1;transform:none}
+
+  /* ===== RESPONSIVE ===== */
+  @media(max-width:960px){
+    .hero{grid-template-columns:1fr;padding-top:120px}
+    .pillars{grid-template-columns:1fr}
+    .demo-wrap{grid-template-columns:1fr}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    nav ul{position:fixed;top:66px;right:-%;flex-direction:column;background:var(--bg2);
+        width:70%;height:100vh;padding:40px;transition:.35s;border-left:1px solid var(--border)}
+    nav ul.open{right:0}
+    .burger{display:block}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= NAV ================= -->
+<nav>
+  <a class="logo" href="#home"><span class="shield">🛡</span>VoiceGuard<b>AI</b></a>
+  <button class="burger" onclick="document.getElementById('menu').classList.toggle('open')">☰</button>
+  <ul id="menu">
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#solution">Solution</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#demo">Live Demo</a></li>
+    <li><a href="#impact">Impact</a></li>
+    <li><a class="nav-cta" href="#demo">Try It</a></li>
+  </ul>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header class="hero" id="home">
+  <div>
+    <span class="tag">⚡ AICTE CYBER SECURITY CELL · SIH 2026 · SIH26104</span>
+    <h1>We Don't Just Detect Fake Voices.<br><span>We Make Them Fail.</span></h1>
+    <p>VoiceGuard AI is a real-time voice integrity framework that detects AI-cloned speech
+       during live calls — and actively defeats it with challenge-response defense,
+       generative fingerprinting, and voice-bound authentication.</p>
+    <div class="btns">
+      <button class="btn btn-primary" onclick="location.href='#demo'">▶ Live Demo</button>
+      <button class="btn btn-ghost" onclick="location.href='#solution'">How It Works</button>
+    </div>
+  </div>
+  <div class="wave-box">
+    <div class="lbl"><span>● Live Call — Channel A</span><span id="waveTag">ANALYZING…</span></div>
+    <canvas id="wave1"></canvas>
+    <div class="lbl" style="margin-top:18px"><span>● AI CLONE SIGNATURE</span><span>TTS DETECTED</span></div>
+    <canvas id="wave2"></canvas>
+    <div class="verdict fake">🚨 IMPERSONATION RISK: 96/100
+      <button onclick="location.href='#demo'">View Report</button></div>
+  </div>
+</header>
+
+<!-- ================= STATS -->
+<div class="stats">
+  <div class="stat"><h3 data-count="5">0</h3><p>Seconds of audio needed to clone a voice</p></div>
+  <div class="stat"><h3 data-count="2">&lt;0</h3><p>Seconds detection latency (per window)</p></div>
+  <div class="stat"><h3 data-count="95">0</h3><p>% target detection accuracy</p></div>
+  <div class="stat"><h3 data-count="22">0</h3><p>+ Indian languages &amp; accents supported</p></div>
+</div>
+
+<!-- ================= PROBLEM ================= -->
+<section id="problem">
+  <div class="head reveal">
+    <span class="kicker">The Threat</span>
+    <h2>Your Voice Is No Longer Your Identity</h2>
+    <p>Neural text-to-speech has weaponized the human voice. Telephony ecosystems have
+       zero automated defense against it.</p>
+  </div>
+  <div class="prob-grid">
+    <div class="prob-card reveal"><div class="ico">🧬</div><h3>3–Second Cloning</h3>
+      <p>Open-source models replicate any voice — CXO, family member, government official — from a few seconds of leaked audio.</p></div>
+    <div class="prob-card reveal"><div class="ico">💸</div><h3>Exponential Fraud</h3>
+      <p>CFO fraud, "digital arrest" scams, and fake KYC calls are draining crores from Indian banks and citizens.</p></div>
+    <div class="prob-card reveal"><div class="ico">📵</div><h3>Legacy Defenses Dead</h3>
+      <p>Caller ID verifies numbers, not voices. Call-backs get skipped under social-engineering pressure.</p></div>
+    <div class="prob-card reveal"><div class="ico">⏱</div><h3>Detection Comes Too Late</h3>
+      <p>Today's tools are forensic — they analyze fake audio after the money is gone. Nothing scores risk during the live call.</p></div>
+  </div>
+</section>
+
+<!-- ================= SOLUTION ================= -->
+<section id="solution" style="background:var(--bg2)">
+  <div class="head reveal">
+    <span class="kicker">Our Solution</span>
+    <h2>Detect. <span style="color:var(--green)">Prevent.</span> Attribute.</h2>
+    <p>Three layers no other system combines — passive detection, active prevention,
+       and forensic attribution.</p>
+  </div>
+  <div class="pillars">
+    <div class="pillar reveal">
+      <div class="ico">🔍</div><h3>Detect</h3>
+      <p>Multi-layer analysis of live audio every 3–5 seconds: spectral artifact CNNs,
+         prosody transformers, and speaker-consistency checks produce a continuous
+         0–100 impersonation risk score.</p>
+    </div>
+    <div class="pillar reveal">
+      <span class="badge">★ UNIQUE</span>
+      <div class="ico">🛡️</div><h3>Prevent</h3>
+      <p><b>Active Challenge-Response Defense:</b> on medium risk, we inject randomized
+         adversarial perturbations + dynamic verbal challenges into the call.
+         Cloned voices corrupt and fail in real time. Humans pass naturally.</p>
+    </div>
+    <div class="pillar reveal">
+      <span class="badge">★ UNIQUE</span>
+      <div class="ico">🧬</div><h3>Attribute</h3>
+      <p>Generative-model fingerprinting identifies <i>which</i> TTS engine built the fake
+         (ElevenLabs, XTTS, Vall-E…) — evidentiary-grade intelligence for CERT-In &amp; law enforcement.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ARCHITECTURE ================= -->
+<section id="architecture">
+  <div class="head reveal">
+    <span class="kicker">System Design</span>
+    <h2>End-to-End Architecture</h2>
+  </div>
+  <div class="arch reveal">
+┌─────────────────────────────────────────────────┐
+│  AUDIO SOURCES: PSTN / VoIP / Zoom / Teams      │
+└───────────────────────┬─────────────────────────┘
+                        ▼
+┌─────────────────────────────────────────────────┐
+│  STREAMING INGESTION (WebRTC / SIP / RTP)       │
+└───────────────────────┬─────────────────────────┘
+                        ▼
+┌────────────────────────────────────┐  ┌──────────────────────────────┐
+│  AI DETECTION ENGINE (3–5s window) │  │ <span class="hl">★ ACTIVE DEFENSE MODULE</span>    │
+│  ① Spectral Artifact CNN           │◄─│  • Adversarial perturbation  │
+│  ② Prosody Analyzer (Transformer)  │  │  • Dynamic verbal challenge  │
+│  ③ Speaker Consistency (ECAPA)     │  │  • TTS fingerprint registry  │
+└───────────────────────┬────────────┘  └──────────────────────────────┘
+                        ▼
+┌─────────────────────────────────────────────────┐
+│  RISK SCORING ENGINE (0–100 + context metadata) │
+└───────────────────────┬─────────────────────────┘
+                        ▼
+┌─────────────────────────────────────────────────┐
+│  ALERTS · WORKFLOWS · REST/gRPC APIs            │
+│  <span class="hl">+ VOICE-BINDING TOKEN (Voice+Number dual auth)</span>   │
+└─────────────────────────────────────────────────┘</div>
+</section>
+
+<!-- ================= FEATURES ================= -->
+<section style="background:var(--bg2)">
+  <div class="head reveal">
+    <span class="kicker">Why We Win</span>
+    <h2>Feature Uniqueness Matrix</h2>
+  </div>
+  <table class="feat-table reveal">
+    <tr><th>Our Innovation</th><th>Why No One Else Has It</th></tr>
+    <tr><td>🎯 Active Challenge-Response Defense</td>
+        <td>Others passively listen and guess. We force clones to fail live — detection becomes prevention. Zero friction for genuine callers.</td></tr>
+    <tr><td>🧬 TTS Model Fingerprinting</td>
+        <td>Every generative model leaves a unique signature. We identify the exact tool — forensic attribution, not just flags.</td></tr>
+    <tr><td>🔐 Voice-Binding Token (Dual Auth)</td>
+        <td>Cryptographic hash of enrolled speaker embeddings. Number ✔ + Voice ✔ = trust. Cloning becomes useless against enrolled identities.</td></tr>
+    <tr><td>📊 Multi-Layer Passive Detection</td>
+        <td>Spectral + prosody + identity layers fused — a model that fools one layer fails the other two.</td></tr>
+    <tr><td>🔒 Privacy-First by Design</td>
+        <td>Edge/on-device inference, feature-only logging, no raw audio retention — DPDP Act 2023 compliant.</td></tr>
+    <tr><td>🇮🇳 Built for India</td>
+        <td>Language-agnostic features + accent-aware models for Hindi, regional languages &amp; code-mixed speech at 8kHz telephony quality.</td></tr>
+  </table>
+</section>
+
+<!-- ================= LIVE DEMO ================= -->
+<section id="demo">
+  <div class="head reveal">
+    <span class="kicker">Interactive Prototype</span>
+    <h2>Live Risk Engine Simulation</h2>
+    <p>Select a caller scenario and watch the VoiceGuard risk engine respond in real time.</p>
+  </div>
+  <div class="demo-wrap reveal">
+    <div class="gauge">
+      <svg width="230" height="230">
+        <circle cx="115" cy="115" r="100" stroke="#243050" stroke-width="16" fill="none"/>
+        <circle id="gaugeArc" cx="115" cy="115" r="100" stroke="url(#g)" stroke-width="16"
+          fill="none" stroke-linecap="round" stroke-dasharray="628" stroke-dashoffset="628"
+          style="transition:stroke-dashoffset 1s ease"/>
+        <defs><linearGradient id="g"1="0" y1="0" x2="1" y2="">
+          <stop offset="0%" stop-color="#00e5ff"/><stop offset="100%" stop-color="#7c4dff"/>
+        </linearGradient></defs>
+      </svg>
+      <div class="val"><div style="text-align:center">
+        <b id="scoreVal" style="color:var(--green)">0</b><br>
+        <span>RISK SCORE</span><br>
+        <span id="scoreLbl" style="font-weight:700">IDLE</span>
+      </div></div>
+    </div>
+    <div class="demo-controls">
+      <h3>Simulate Incoming Call</h3>
+      <p>Choose the caller type. The engine analyzes acoustic artifacts, prosody and context — then triggers active defense when needed.</p>
+      <div class="chip-row">
+        <button class="chip active" onclick="simulate('human',this)">👤 Genuine Human</button>
+        <button class="chip" onclick="simulate('clone',this)">🤖 AI Cloned Voice</button>
+        <button class="chip" onclick="simulate('hybrid',this)">⚠️ Hybrid (Splice Attack)</button>
+      </div>
+      <div id="demoStatus">Awaiting call… engine standing by.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= IMPACT ================= -->
+<section id="impact" style="background:var(--bg2)">
+  <div class="head reveal">
+    <span class="kicker">Expected Outcomes</span>
+    <h2>National-Scale Impact</h2>
+  </div>
+  <div class="impact-grid">
+    <div class="impact-card reveal"><h4>💸 Fraud Reduction</h4>
+      <p>Significant drop in voice-cloning-driven financial fraud across banking and government channels.</p></div>
+    <div class="impact-card reveal"><h4>🛡️ Restored Trust</h4>
+      <p>Voice channels become verifiable again — for citizens, enterprises and institutions alike.</p></div>
+    <div class="impact-card reveal"><h4>⚡ Proactive Response</h4>
+      <p>Attacks are caught mid-call, enabling containment before money moves.</p></div>
+    <div class="impact-card reveal"><h4>♻️ Reusable Layer</h4>
+      <p>Drop-in security APIs for telecom operators — strengthening national cyber resilience.</p></div>
+  </div>
+  <div class="kpis reveal">
+    <span class="kpi">✔ Accuracy ≥ 95%</span>
+    <span class="kpi">✔ False Positives &lt; 2%</span>
+    <span class="kpi">✔ Latency &lt; 2s</span>
+    <span class="kpi">✔ DPDP 2023 Compliant</span>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section class="cta">
+  <h2>"In the Age of AI Voices,<br>Trust Must Be Verified — Not Assumed."</h2>
+  <p>Team VoiceGuard AI · Smart India Hackathon 2026 · PS ID: SIH26104</p>
+  <button class="btn btn-primary" onclick="location.href='#demo'">▶ Experience the Demo</button>
+</section>
+
+<footer>
+  <span>🛡 <b>VoiceGuard AI</b> — SIH 2026 Prototype</span>
+  <div class="links">
+    <a href="#solution">Solution</a><a href="#architecture">Architecture</a>
+    <a href="#impact">Impact</a><a href="#demo">Demo</a>
+  </div>
+  <span>© 2026 · AICTE Cyber Security Cell Track</span>
+</footer>
+
+<script>
+/* ---------- Waveform canvases ---------- */
+function wave(id,color,amp,speed){
+  const c=document.getElementById(id),ctx=c.getContext('2d');
+  function resize(){c.width=c.offsetWidth*2;c.height=220;}
+  resize();window.addEventListener('resize',resize);
+  (function draw(t){
+    ctx.clearRect(0,0,c.width,c.height);
+    ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=3;
+    for(let x=0;x<c.width;x+=3){
+      const y=c.height/2+Math.sin(x*.02+t*speed)*amp*Math.sin(x*.005+t*speed*.6)
+              +(Math.random()-.5)*amp*.4;
+      x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.stroke();requestAnimationFrame(draw);
+  })(0);
+}
+wave('wave1','#00ff9d',40,.02);
+wave('wave2','#ff4d6d',70,.05);
+
+/* ---------- Animated counters ---------- */
+document.querySelectorAll('[data-count]').forEach(el=>{
+  new IntersectionObserver((e,o)=>{if(e[0].isIntersecting){
+    let n=0,target=+el.dataset.count;
+    const i=setInterval(()=>{n+=Math.ceil(target/40);
+      if(n>=target){n=target;clearInterval(i)}el.textContent=n;},30);
+    o.disconnect();}},{threshold:.6}).observe(el);
+});
+
+/* ---------- Scroll reveal ---------- */
+const ro=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){e.target.classList.add('show');ro.unobserve(e.target);}}),{threshold:.15});
+document.querySelectorAll('.reveal').forEach(el=>ro.observe(el));
+
+/* ---------- Risk engine demo ---------- */
+const scenarios={
+  human:{score:8,label:'AUTHENTIC',color:'#00ff9d',
+    msg:'✅ Low risk (8/100). Acoustic, prosody & identity layers consistent. No challenge triggered — caller proceeds normally.'},
+  clone:{score:96,label:'CRITICAL',color:'#ff4d6d',
+    msg:'🚨 CRITICAL (96/100)! Spectral artifacts + flat prosody detected. Active challenge FAILED to pass. TTS fingerprint: open-source neural TTS. Transaction BLOCKED, incident logged for forensics.'},
+  hybrid:{score:62,label:'ELEVATED',color:'#ffc857',
+    msg:'⚠️ ELEVATED (62/100). Partial clone suspected (spliced genuine + synthetic audio). Adversarial perturbation injected → artifact spike confirmed. Dynamic verbal challenge issued. Recommend call-back + MFA before any transaction.'}
+};
+function simulate(type,btn){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  const s=scenarios[type];
+  const off=628-(628*s.score/100);
+  document.getElementById('gaugeArc').style.strokeDashoffset=off;
+  const sv=document.getElementById('scoreVal');
+  document.getElementById('scoreLbl').textContent=s.label;
+  document.getElementById('scoreLbl').style.color=s.color;
+  document.getElementById('demoStatus').textContent=s.msg;
+  document.getElementById('demoStatus').style.borderColor=s.color;
+  let n=0;const step=s.score/25;
+  const t=setInterval(()=>{n+=step;if(n>=s.score){n=s.score;clearInterval(t)}
+    sv.textContent=Math.round(n);sv.style.color=s.color;},35);
+}
+</script>
+</body>
+</html>
